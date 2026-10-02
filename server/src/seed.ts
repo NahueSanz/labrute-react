@@ -1,5 +1,3 @@
-
-import { ARENA_OPPONENTS_COUNT } from '@labrute/core';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc.js';
 import {
@@ -10,13 +8,17 @@ import { generateBot } from './utils/brute/generateBot.js';
 
 dayjs.extend(utc);
 
+const BOTS_PER_LEVEL = 18;
+const MAX_BOT_LEVEL = 200;
+const TOTAL_BOTS = BOTS_PER_LEVEL * MAX_BOT_LEVEL;
+
 async function main(cx: ServerContext) {
   // Check if DB is already seeded
   const count = await cx.prisma.brute.count({
     where: { userId: null },
   });
 
-  if (count >= ARENA_OPPONENTS_COUNT * 100) {
+  if (count >= TOTAL_BOTS) {
     return;
   }
 
@@ -27,9 +29,10 @@ async function main(cx: ServerContext) {
   });
 
   // Generate random names
-  cx.logger.log(`DB only contains ${count} generated brutes, regenerating ${ARENA_OPPONENTS_COUNT * 100}...`);
+  cx.logger.log(`DB only contains ${count} generated brutes, regenerating ${TOTAL_BOTS}...`);
   const nicks: string[] = [];
-  for (let i = 0; i < ARENA_OPPONENTS_COUNT * 100; i++) {
+
+  for (let i = 0; i < TOTAL_BOTS; i++) {
     let generatedName;
 
     // Reroll if name already exists
@@ -45,7 +48,7 @@ async function main(cx: ServerContext) {
     nicks.push(generatedName);
 
     await cx.prisma.brute.create({
-      data: generateBot(Math.floor(i / (ARENA_OPPONENTS_COUNT / 2)) + 1, generatedName),
+      data: generateBot(Math.floor(i / BOTS_PER_LEVEL) + 1, generatedName),
     });
   }
 }
